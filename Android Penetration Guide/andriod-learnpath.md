@@ -104,10 +104,3 @@
 
 This roadmap and resource list gives you a practical path from fundamentals to lab-capable skills. Follow the week-by-week plan, practice the mini-projects, and you’ll be ready to perform Android pentest tasks in supervised labs.
 
-If you want, I can now:
-
-* Convert this README into a printable PDF;
-* Create a 7-day micro-course with a daily checklist and links; or
-* Curate 3 YouTube playlists (LiveOverflow, John Hammond, practical MobSF/Frida demos) in order.
-
-Which one should I make next?
