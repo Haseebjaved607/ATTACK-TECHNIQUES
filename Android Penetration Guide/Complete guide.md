@@ -1,350 +1,250 @@
-# README — Android Penetration Test (Exam / Lab Playbook)
+README — Practical: What to put on the phone (one-time physical touch)
 
-**Audience:** CEH / pentest student preparing for a supervised Android lab (Android 11 / 12; brands: Tecno, Infinix, Oppo, Pixel).
-**Scope:** Single initial physical access to target phone (one-time touch at start), isolated lab network, full authorized testing, demonstrate methods to obtain remote/live access, collect authorized evidence, and restore device.
-**Style:** Practical, step-by-step conceptual guide from a professional pentester’s point of view. No destructive instructions — everything framed for a permissioned lab.
+Target: Android 11 / 12 (Tecno, Infinix, Oppo, Pixel, etc.)
+Goal: After one physical touch, enable remote/live access & analysis capabilities to run a full pentest from your lab host. Provide fallback options for time-limited or restricted environments.
 
----
+High-level plan (one sentence)
 
-## Quick summary (one-liner)
+During your one touch: (1) document & image, (2) isolate network, (3) enable/verify Developer Options if allowed, then (4) install a small set of benign, signed apps/files + trust a lab CA so you can remotely mirror the screen, intercept traffic, instrument apps, and — if required — maintain a controlled remote channel; finally document and cleanup.
 
-You get one physical interaction at the start. Use that first touch to **image the device**, **isolate it**, and **set up the one-time foothold** (ADB / trusted test app / certificates) so you can continue all further testing remotely from your lab host. If you cannot change settings, perform maximal passive & static reconnaissance and exploit allowed vectors (exported components, user-installed app flows, network flaws). Document everything.
+What to install ON THE PHONE (priority order)
 
----
+Each item lists: purpose — where to get it / how to set it (UI-level) — what it enables — notes (detection, persistence, when to choose)
 
-## Table of contents
+1) Trusted lab CA certificate (Burp / mitmproxy)
 
-1. Lab rules & pre-conditions
-2. What to bring & host pre-setup
-3. One-time physical touch — checklist (what to do immediately)
-4. Initial verification & imaging (forensics-first)
-5. Network isolation & baseline captures
-6. Core workflows (recon → analysis → access → persistence → cleanup)
-7. Tools (free, alternate free, commercial/premium) — what they do & when to use
-8. If Developer Options / USB Debugging is OFF — realistic options
-9. Reboot, power-off, and persistence realities (what works, what doesn’t)
-10. What you can/can’t access (permissions, root, encryption)
-11. Data collection, evidence & reporting (deliverables)
-12. Cleanup & restore checklist
-13. Practical pentester tips & exam-winning behaviours
-14. 60-second exam starter checklist (cheat-sheet)
-15. Appendix: example test plan & findings structure
+Purpose: let you intercept app HTTPS traffic with Burp/mitmproxy without certificate warnings.
 
----
+How (UI-level): Install the lab CA certificate on the device (Settings → Security → Install from storage). If Android prompts for credential storage or lockscreen, follow lab rules.
 
-## 1 — Lab rules & pre-conditions (always confirm)
+Enables: full HTTP(S) interception of many apps (except apps using certificate pinning or Android 7+ block for user CAs).
 
-* Confirm written authorization and scope (signed). This must be the first step.
-* Confirm allowed actions (e.g., allowed to enable Developer Options, allowed to install test APKs, allowed to root or not). Get a list of **prohibited actions** in writing.
-* Confirm device network is isolated / use a lab VLAN.
-* Confirm what evidence (screenshots, logs, packet captures) lab expects and retention rules.
+Notes: Modern apps may ignore user CAs; you’ll use Frida or a modified APK where pinning exists. Installing the CA may require a screen lock to be present.
 
----
+2) A small benign test APK you control (recommended)
 
-## 2 — What to bring & host pre-setup
+Purpose: controlled reverse channel + persistence demonstration.
 
-**Bring (digital & physical):**
+How: a signed APK you bring on USB (or transfer from your host) that requests minimal required permissions (INTERNET, optionally RECEIVE_BOOT_COMPLETED, and only others you need). Install via UI (tap to install) or via ADB if debugging enabled.
 
-* Signed authorization document (printed).
-* Laptop/VM with preinstalled core tools (see Tools section).
-* Backup media (external drive) or network storage for image backups.
-* USB-A/USB-C cable compatible with device.
-* Paper & pen for serial numbers, timestamps, and signatures.
+Enables: a safe, auditable network callback so you can reconnect the device remotely and demonstrate persistence (app only communicates with your lab server).
 
-**Host pre-setup (do BEFORE exam):**
+Notes: Do not include exfiltration code. Make it transparent: open a status page showing “lab-control installed”. If Play Protect flags it, show the block as evidence and request whitelist from pro (or use the “install anyway” flow in the test environment if allowed).
 
-* Attacker host (Kali/Ubuntu/Windows VM) with core tools installed and tested on emulator.
-* Isolated lab network (no internet or strict egress rules). Assign static IPs for host and device if possible.
-* Emulators (Android Studio / Genymotion) with same Android versions for practice.
-* Evidence/report templates ready.
+3) scrcpy-friendly configuration (no APK needed)
 
----
+Purpose: live screen mirror & input control.
 
-## 3 — One-time physical touch — mandatory immediate actions (do these first)
+How: if USB Debugging is allowed/enabled, you don’t install anything on the phone. If debugging is disabled but allowed to be enabled, turn it on in Settings → Developer options → USB debugging.
 
-When you get the phone for the single physical touch, do these in sequence. They are critical — they preserve your evidence and enable further testing.
+Enables: real-time screen viewing & control from your host.
 
-1. **Identify & document**
+Notes: Best demo tool. If Dev Options is off and you cannot toggle it, scrcpy is unavailable.
 
-   * Photograph the device (front, back, serial/IMEI, model).
-   * Note Android version, security patch, build number, and carrier info (if shown).
-   * Record time, location, and staff present.
+4) Termux (OPTIONAL) or a lightweight shell app
 
-2. **Image / backup (forensics-first)**
+Purpose: provide a local shell environment and can run simple networking tools (SSH client if you need out-of-band). Useful if ADB not allowed.
 
-   * If allowed and feasible, create a full device image or at least a complete user-data backup. If a full forensic image is not allowed, capture:
+How: install Termux APK from F-Droid or your signed copy (or via Play Store if available).
 
-     * `/sdcard` contents,
-     * app APKs (if available),
-     * screenshots of home screens and installed apps,
-     * system settings pages (Android version, Build number, Developer Options page if it exists),
-     * `About phone` page (model, build, security patch).
-   * Store image/backup on secure storage; compute integrity hash (SHA256).
+Enables: local scripting, simple listeners, quick file operations — valuable when ADB is not enabled.
 
-3. **Check & set initial settings (only if allowed by rules)**
+Notes: Termux cannot act as a stealth persistence service by default (modern Android restricts background services). Play Protect may flag obscure installs.
 
-   * Check if Developer Options exists and whether **USB Debugging** is ON or OFF. Record state.
-   * Check whether Play Protect and any vendor antivirus/security apps are active. Record.
-   * Check Wi-Fi status: connect to lab VLAN / make sure phone is isolated (or note if already connected to public network).
-   * If permitted by scope and you intend to use ADB: enable Developer Options and USB Debugging **now** (this is the single best leverage for remote control). If you must ask examiners to enable it, do so and document it.
+5) Frida gadget (embedded) or Frida-server binary (only if allowed)
 
-4. **One-time setup options (choose per rules & objective)**
+Purpose: enable runtime instrumentation for apps you want to hook.
 
-   * **If you can enable USB Debugging:** enable it, then (recommended) enable ADB TCPIP or install a small signed test app that re-enables ADB or opens a reverse channel (install only your benign app that you control). This sets up future remote access after you leave.
-   * **If you can only install but not change settings:** install a signed test APK that requests the minimal permissions needed (ACCESS_NETWORK_STATE, INTERNET, RECEIVE_BOOT_COMPLETED if allowed) and be transparent in report. Make sure app auto-start option is set if allowed.
-   * **If you cannot change anything:** collect as much passive intel as possible (installed apps list, versions, versions of Play Protect) and exit — your later options will be limited to non-physical attacks (network MITM, API fuzzing if you can get the device to use your proxy).
+How: two variants:
 
-**Important:** Every change you make must be recorded (timestamp, purpose, and proof). If you alter the device (enable dev options, install app), take a clear before/after screenshot.
+Frida-server binary requires pushing an executable and running it on the device — often needs root or adb shell execution rights.
 
----
+Frida-gadget is an alternative: embed the gadget into an app (your test APK) and run it — no root required.
 
-## 4 — Initial verification & imaging (deep)
+Enables: dynamic hooks, bypassing checks, dumping runtime secrets, bypassing pinning (with caution).
 
-* **Imaging priority:** full image > partition dumps > file-level backups. If full image impossible, capture:
+Notes: Frida-server on non-root devices may be killed by Play Protect or require workarounds. Prefer Frida-gadget embedded within your signed test app.
 
-  * Screenshots of each Settings page you interact with,
-  * A DB dump of app data you can access,
-  * Exported APKs (if possible),
-  * `adb logcat` if debugging is enabled (capture logs),
-  * Packet capture (Wireshark/tcpdump) during initial baseline interactions.
-* **Chain of custody:** keep a log of who touched device, timestamps, actions, and where backups are stored. This is part of professional reporting and exam grading.
+6) Burp CA + Proxy configuration (on device)
 
----
+Purpose: configure device to use your lab proxy (Burp/mitmproxy) IP and port.
 
-## 5 — Network isolation & baseline captures
+How: Settings → Wi-Fi → Modify network → Advanced → Proxy → Manual (enter lab host IP and port).
 
-* Place device on lab VLAN/isolated Wi-Fi. Assign known IP.
-* Start passive packet capture on VLAN (Wireshark/tcpdump) to record DNS, HTTP(S) endpoints used by apps. This gives you later context for API analysis.
-* Observe app behavior without interacting (open app and record traffic). You’ll get clues about servers, API paths, and whether traffic is encrypted.
+Enables: route all app web traffic through your proxy for interception and replay.
 
----
+Notes: system apps and apps using VPNs won't follow proxy. You’ll need the CA installed to intercept HTTPS.
 
-## 6 — Core workflows (high level — what to do next)
+7) Accessibility helper (optional; use only if allowed & documented)
 
-### A) Reconnaissance (local + network)
+Purpose: in some advanced persistence demos, an Accessibility Service can auto-start and perform actions after boot.
 
-* Inventory installed apps and versions. Identify suspicious or privileged apps.
-* Note debuggable apps (manifest flag) and exported components (activities/services/receivers/providers).
-* Find apps signed with test keys or old debug builds.
-* Map network endpoints the device communicates with — identify plain HTTP or weak TLS.
+How: included in your test APK; user must enable it in Settings → Accessibility.
 
-### B) Static analysis (APK-level)
+Enables: automation and sometimes persistence across reboots (but requires explicit user enable).
 
-* Extract APKs (from `/data/app` if possible or downloaded from backup). Run an offline analyzer (MobSF) and human-review with jadx/apktool. Look for:
+Notes: highly visible and often blocked/warned by Play Protect — use only if allowed and documented.
 
-  * Hardcoded keys, endpoints, credentials,
-  * Exported components with `exported="true"`,
-  * Intents that accept external input,
-  * Insecure storage usage (plain text files, insecure DBs),
-  * Certificate pinning implementation (strings hinting at pinning).
+8) Diagnostic apps (optional but handy)
 
-### C) Dynamic analysis (runtime)
+Network Info II, IP Tools, or Ping & Net — to get the phone IP, SSID, and routing info quickly from UI.
 
-* Use Burp Suite + device to proxy app traffic (install Burp CA on device). Intercept and analyze API calls, tokens, cookie handling, weak auth, and insecure endpoints.
-* Use Frida/Objection to hook functions: find token handling, bypass logic checks, dump runtime strings. Use emulator first to refine scripts, then target device if permitted.
+How: install simple listed apps from Play Store or your signed copies.
 
-### D) Access methods (choose one based on initial state)
+Enables: quick confirmation of connectivity and IP for ADB-over-TCP or proxy setup.
 
-1. **ADB / scrcpy (best-case / most straightforward)** — if USB debugging enabled:
+9) Remote support tools (commercial alternatives)
 
-   * Connect via USB first to confirm access; if allowed, enable ADB-over-TCP for remote reconnection.
-   * Use scrcpy for live screen and input control; use `adb shell` for file operations, logcat, and app control.
-2. **Controlled test APK (recommended for persistence demo)** — create and install a benign app you control that:
+TeamViewer Host (commercial): host installation allows remote control from your account — works without ADB but requires internet and registration.
 
-   * Uses a reverse TLS socket or web socket to your lab server (purely demonstration, no exfiltration of real data),
-   * Optionally starts on boot (RECEIVE_BOOT_COMPLETED),
-   * Uses minimal permissions.
-   * Install only on devices you explicitly control/are allowed to modify.
-3. **Exploit app vulnerabilities** (only when explicitly allowed and you have technical proof): insecure exported components, weak IPC, insecure file permissions, etc. These are often the only route if debugging is disabled and no app install is permitted.
-4. **Network attacks** — intercept and manipulate traffic (MITM) to cause the device to download a test APK or reveal sensitive endpoints (only in lab with permission).
-5. **Root / system compromise** — only if explicitly allowed and documented. Rooting changes device state significantly and may invalidate forensic results; show conceptual approach and only perform if in scope.
+AirDroid / Vysor: remote control / mirroring services — sometimes blocked by vendor protections.
 
-### E) Post-access: data collection & proof
+Use only if the lab permits external services; otherwise prefer self-hosted reverse app.
 
-* Collect only authorized data: screenshots, logs, app DBs, relevant files from external storage.
-* Save network captures showing API calls with sensitive parameters.
-* For each artifact, note exact timestamps, method used, and how you validated it (hashes/screenshots).
+What to install ON THE HOST (lab server) — minimal list
 
----
+ADB (Android SDK platform-tools) — to connect and control the device when USB debugging enabled.
 
-## 7 — Tools — free → alternate → premium (what each does & when to use)
+scrcpy — to mirror the screen/control once device is accessible.
 
-> **Priority order** for learning and exam prep is at top of each list.
+Burp Suite (or mitmproxy) + prepared CA cert — for HTTP(S) interception.
 
-### Core free tools (learn these first)
+Frida tools (frida-server or frida-tools + frida-python) — for dynamic instrumentation.
 
-* **ADB (Android Debug Bridge)** — device shell, file pull/push, app install/uninstall, logs, port forwarding. (Use: baseline, access, file/data collection.)
-* **scrcpy** — screen mirroring & remote control (USB / TCP). (Use: live demo of access.)
-* **MobSF (Mobile Security Framework)** — automated static + dynamic scanning of APKs. (Use: fast vulnerability discovery.)
-* **jadx** — decompile APK to Java-like source to find sensitive strings & logic. (Use: static analysis.)
-* **apktool** — unpack/repack APKs, view manifest, resources, and smali. (Use: deeper static work & proof-of-concept modifications in emulator.)
-* **Frida + frida-tools** — dynamic instrumentation and function hooking at runtime. (Use: bypass protections, dump secrets at runtime.)
-* **Objection** (uses Frida) — higher-level runtime exploration toolkit for mobile (bypass root checks, explore app file system).
-* **Burp Suite Community** — intercept and analyze HTTP(S) app traffic (use with device CA).
-* **Wireshark / tcpdump** — capture/analyze network packets.
-* **Android Studio / Genymotion** — emulators for safe testing and reproducing issues.
-* **DB Browser for SQLite** — view app SQLite DBs pulled from device.
-* **Open-source forensic tools** (Autopsy / Sleuth Kit) — analyze images (if allowed).
+MobSF, jadx, apktool — for APK static analysis.
 
-### Alternate free tools (useful)
+Wireshark / tcpdump — capture traffic on lab VLAN.
 
-* **mitmproxy** — alternative to Burp for intercepting app traffic (CLI + web UI).
-* **APK Inspector / Bytecode Viewer** — alternative decompilers and static analysis helpers.
-* **NetHunter / Kali Nethunter** — mobile pentest platform (for advanced mobile-to-mobile testing).
-* **adb backup / fastboot** — various backup/flash tools (availability depends on device & OEM).
+A simple listener (your lab server) — for your test APK reverse connection (e.g., a simple HTTPS server or websocket server you control).
 
-### Premium / commercial tools (powerful; note cost & ethics)
+SQLite Browser — read app DBs you pull.
 
-* **Cellebrite UFED / Magnet AXIOM** — professional mobile forensic toolkits to extract deep data (often used by labs/law-enforcement).
-* **Frida Pro / commercial Frida tooling wrappers** — enterprise-level instrumentation.
-* **Burp Suite Professional** — advanced scanning, repeater enhancements, Intruder for fuzzing.
-* **Mobile security testing suites** (AppSweep, NowSecure, Veracode) — commercial analysis.
-* **Commercial forensics suites** for deep NAND / chip-off analysis.
-* **Magisk (root)** — not premium but advanced; enables systemless root & module persistence (use only in-scope).
+What to put on the phone filesystem (files) — filenames & placements
 
-**Note:** Premium tools can make some tasks trivial (full extractions, bypasses) but are rarely permitted in student labs and can be costly. Know them conceptually and mention them in remediation if your report needs to recommend professional investigation.
+(These are suggestions you prepare on a USB or microSD to drop onto the phone during touch.)
 
----
+lab_ca.crt — the Burp CA certificate to install.
 
-## 8 — Developer Options / USB Debugging is OFF — what to do (realistic options)
+lab_control_v1_signed.apk — your benign test APK (signed with your key). Place in Download/ so the user can tap and install.
 
-You have one physical touch at start. If Developer Options is **OFF** and you **are allowed to change settings**, enable Developer Options → USB Debugging immediately. If you are **not allowed** to change settings — follow these tactics:
+termux.apk (optional) — for Termux install if needed.
 
-### If you can touch and change settings (best case)
+frida-gadget.jar or frida-gadget.so — if using embedded gadget in your test app, include in your build; otherwise keep for documentation.
 
-* Enable Developer Options → enable USB Debugging → connect via ADB over USB to perform imaging and optionally enable ADB-over-TCP or install your test app for persistence.
+readme_lab.txt — a short text file on the device home explaining the test app purpose, who installed it, and contact (transparency for graders).
 
-### If you can touch but must not alter system settings permanently
+Placement: place files in Download/ or Documents/ for easy access via device UI. Do not attempt to push to system directories unless explicitly allowed.
 
-* Use your single touch to **install a benign test APK** that only requests minimal permissions and is transparent. It can request `INTERNET` and optionally `RECEIVE_BOOT_COMPLETED`. **Do not enable USB Debugging** unless allowed. This lets you maintain a remote channel without flipping system-wide settings.
+Configurations to apply on the phone (UI-level only)
 
-### If you cannot change settings and cannot install apps
+Install the lab CA and verify it appears under Settings → Security → Trusted credentials (User).
 
-* Rely on **passive & indirect vectors**:
+Configure Wi-Fi proxy (Manual) to point to your lab host (Burp) IP and port.
 
-  * **Network-based** — intercept the device’s traffic (if you can make the device connect through your proxy/VLAN) to discover endpoints and API weaknesses; then attempt to trigger a remote app update or social-engineer user into installing a test app (if allowed).
-  * **Exploit exported components** — static analysis of apps (if you can obtain their APKs from Play Store or backup) to find IPC entry points that accept external intents and can be abused to extract data or cause actions. This often requires a crafted app or intent invocation.
-  * **Use UI interactions** — if allowed during exam, you may be able to demonstrate that a user action (clicking a link, opening an infected content) leads to an exploit. In many exams, demonstrating the required user action is acceptable.
+If allowed, enable Developer Options → USB debugging.
 
-**Bottom line:** If debugging is OFF and you can’t change it, you likely cannot use ADB/scrcpy. Focus on APK/static analysis, network interception, and demonstrating feasible attack paths that require user interaction.
+If installing test app, accept installation dialog, and if app requests permissions (INTERNET, RECEIVE_BOOT_COMPLETED), accept only those required and document.
 
----
+If Accessibility-based persistence is used, enable the accessibility service for that app (UI path: Settings → Accessibility → [app name]).
 
-## 9 — Reboot, power-off, and persistence realities
+Persistence & reboot behavior — realistic expectations
 
-* **Live session (scrcpy/ADB) dies on power-off/reboot.** Unless persistence was installed prior, you will lose remote sessions.
-* **ADB-over-TCP is usually disabled after reboot**; re-setup often needs physical access unless an installed app re-enables it (requires special permissions/root).
-* **File-based encryption & direct-boot:** some app data is only available after the user unlocks the device post-boot. That means even persistent agents may not access all private data until a user unlocks the phone.
-* **Persistence options (lab-allowed):**
+ADB / scrcpy sessions: lost on reboot. You must re-enable ADB-over-TCP (if not persisted) or rely on your test APK to re-establish a connection after boot.
 
-  * Install app that registers for `BOOT_COMPLETED` and opens a connection after unlock (note: will often need user-interaction to grant permissions on modern Android).
-  * System-level persistence (root, Magisk module) — powerful but invasive and often out-of-scope for exams.
-  * Accessibility-service based persistence (dangerous and detectable) — often flagged by Play Protect; avoid unless explicitly allowed.
+Installed test APK with RECEIVE_BOOT_COMPLETED:
 
----
+Can attempt to start after boot, but may be blocked by modern battery optimizations and Play Protect.
 
-## 10 — What you can / cannot access (practical realities)
+Some data remains encrypted until the user unlocks the device after boot; your app may not access everything unless you use unlocked-state triggers or require user unlock.
 
-* **You can typically access:**
+Termux / background services: Android aggressively limits background services; recent versions will pause or kill persistent processes unless whitelisted or converted to foreground service (visible notification).
 
-  * External storage (photos, downloads) if not encrypted or if ADB allows access.
-  * Logs if Developer Options enabled (`logcat`).
-  * Files for debuggable apps or apps that expose content providers.
-  * Network traffic from apps (if you control proxy or capture VLAN).
-* **You usually cannot access:**
+System reboots & keystore: hardware-backed keystore and Direct Boot protect secrets — note this in report.
 
-  * Private app directories (`/data/data/...`) of non-debuggable apps without root.
-  * Hardware-rooted key material (keystore with hardware-backed keys).
-  * Encrypted app data until the phone is unlocked (post-boot).
-  * Data protected by secure enclave / TEE in many banking apps.
+If device powers off or goes out of network: remote channels will be lost until device reconnects to your lab network / user unlocks it.
 
----
+If Developer Options is OFF and you cannot enable it (realistic options)
 
-## 11 — Data collection, evidence & reporting (deliverables)
+Install the benign test APK via user action: if policy allows installations, ask the pro to allow installation from unknown sources temporarily or use Play Store if available.
 
-**Deliverables the graders will expect**
+Use user-interaction vector: create a demo where a simulated user visit (open an URL or tap an APK) triggers your test app install — show the required social-action for exploitation (in many exams, proving the user action is acceptable).
 
-1. **Authorization copy** (signed).
-2. **Initial image/backup** with integrity hash and timestamp (before changes).
-3. **Timeline / Activity log**: every command/action you performed, with timestamps.
-4. **Proof-of-access artifacts**: screenshots, screen recordings (with time), `logcat` snippets, packet capture files, APKs you analyzed, and relevant database extracts.
-5. **Vulnerability findings**: each finding should have:
+Network-only route: place the device behind your proxy (lab Wi-Fi) and do API-level testing (intercept, replay, or fuzz), and attempt to trigger a benign OTA or update that installs your test app (if lab allows).
 
-   * Title (e.g., “Exported Activity allows unauthenticated content injection”),
-   * Impact (what an attacker could do),
-   * Evidence (screenshots, code lines, Burp request/response),
-   * Repro steps (high-level only — do not include exploit code unless allowed),
-   * Severity rating and remediation advice.
-6. **Cleanup proof**: screenshots/notes showing app uninstalled or device restored to original image.
-7. **Executive summary**: non-technical summary of risk and top 3 remediations.
+Static & remote analysis: pull the APKs from Play Store (if available) and analyze them offline in MobSF/jadx to find exportable weaknesses you can demonstrate even without local ADB.
 
----
+Play Protect / Vendor security — handling and expectations
 
-## 12 — Cleanup & restore checklist (must show)
+Play Protect often blocks unknown APK installations and will show an alarm. Do not attempt to bypass Play Protect stealthily. Instead:
 
-* Uninstall any test apps you installed (take screenshots).
-* Disable any debug settings you enabled (return to prior state) unless lab rules say to leave as-is.
-* Restore device from original image or factory reset as required by lab.
-* Hand over signed report and backup images/hashes to lab pro.
-* Provide step-by-step cleanup log (who did what, when).
+Document the detection (screenshot of Play Protect alert).
 
----
+Ask pro to whitelist the APK during lab time (many exams permit this temporarily).
 
-## 13 — Practical pentester tips & exam-winning behaviours
+Use Frida-gadget inside your signed app (less likely to be flagged than an unknown binary pushed to /data/local/tmp) if you must instrument apps.
 
-* **Forensics-first mindset** — image before anything else. Examiners love this.
-* **Document every interaction** — timestamps are gold. If you show you can’t do something (e.g., Play Protect prevented install), that’s a valid finding — show the proof.
-* **Use emulators to test everything first** — scripts, Frida hooks, Burp intercepts — so your live run is smooth.
-* **Show multiple approaches** — if ADB works, still show static analysis findings and a Burp capture to demonstrate depth. Variety = stronger result.
-* **Explain limitations openly** — e.g., “I could not access `/data/data` because the app is not debuggable and device is not rooted.” This shows you understand OS protections.
-* **Be conservative with persistence** — lab instructors prefer controlled benign apps; avoid root unless allowed.
-* **Bring a short demo script** — 3 points to show in 10 minutes: baseline evidence, one exploit/demo, cleanup. Practice this demo.
+Commercial labs may have Play Protect disabled — check before you travel.
 
----
+Cleanup steps (what to uninstall / restore before handing device back)
 
-## 14 — 60-second exam starter checklist (CHEAT-SHEET)
+Uninstall your test APK(s) and any other installed apps (Document uninstall screens).
 
-When you first touch the device, do these in 60 seconds:
+Remove lab CA certificate (Settings → Security → Trusted credentials → User → remove).
 
-1. Photograph device and serial/IMEI.
-2. Note Android version & patch level (Settings → About).
-3. Check & record Developer Options status and USB Debugging state.
-4. Check Play Protect / vendor security status.
-5. Put phone on isolated lab Wi-Fi (or confirm isolated).
-6. Create immediate backup/image or at minimum capture screenshots of key screens.
-7. Start packet capture on lab VLAN (Wireshark/tcpdump) and note device IP.
-8. If allowed, enable USB Debugging and connect ADB to confirm visibility.
+If you enabled Developer Options previously off, revert Developer Options state to original (toggle USB debugging off if it was off earlier) — document both states.
 
----
+Restore from the original device image or perform a factory reset if required by lab policy.
 
-## 15 — Appendix — Example test plan & findings structure (what to hand in)
+Deliver hashes of backups and the cleanup log. Show evidence (screenshots) that no lab artifacts remain.
 
-**Example Test Plan (one page)**
+Pro-level tips & hard-earned tradecraft (short)
 
-* Objective: Demonstrate ability to access an authorized Android 11 device, find and report vulnerabilities, demonstrate safe persistence, and restore device.
-* Scope: Device model X, Android 11, lab VLAN, non-destructive testing.
-* Tools: ADB, scrcpy, MobSF, jadx, Apktool, Frida, Burp, Wireshark, SQLite Browser.
-* Steps: Image → Isolate → Recon → Static Analysis → Dynamic Analysis → Access Demo → Evidence Collection → Cleanup → Report.
+Bring two approaches: ADB/scrcpy (if you can enable Dev Options) and a benign test APK approach (if you cannot). Be ready to pivot fast.
 
-**Example Finding (template)**
+Test everything on emulator first — install your APK, Frida gadget, CA, and proxy flows on emulator with the same Android version so there are no surprises on the live device.
 
-* Title: Insecure Transport — Token sent in cleartext.
-* Severity: High
-* Evidence: Burp request/response capture (screenshot), packet capture (pcap), API endpoint.
-* Impact: Credentials/tokens could be intercepted on untrusted networks.
-* Repro Steps (high-level): Intercept app request via lab proxy → observe token.
-* Recommendation: Enforce TLS and server-side token rotation; implement certificate pinning.
-* Status: Demo’ed during lab on 2025-10-31 10:40 (UTC+5) — see pcap `capture1.pcap`.
+Sign your APK with a recognisable lab key and include a manifest page stating “laboratory test app for [your name / lab]” — transparency reduces friction with Play Protect and graders.
 
----
+Keep the test app minimal: a small persistent heartbeat to your lab server (HTTPS handshake + status page) is enough to demonstrate remote control/persistence concept.
 
-## Final notes — things you must memorize
+Log & timestamp aggressively: every install/uninstall, CA install, enabling of settings — examiners grade both technical ability and documentation.
 
-* **Image-first** (always).
-* **Document everything** (timestamps, screenshots).
-* **If Dev Options ON → use ADB / scrcpy** (fastest path to access).
-* **If Dev Options OFF→ install a benign test app if allowed OR rely on network/inter-app flaws**.
-* **Reboot kills live sessions** unless a permitted persistent agent is present.
-* **Most protected data requires root or post-unlock state**; explain these limits in your report.
+Have recovery ready: if a device behaves oddly after your changes, be ready to restore from the image you took first.
 
----
+Example minimal packages you should carry on USB
+
+lab_control_v1_signed.apk — your signed benign control APK (primary).
+
+lab_ca.crt — lab proxy CA.
+
+termux.apk — optional.
+
+readme_lab.txt — transparency note visible on desktop.
+
+diagnostic.apk (IP tool) — optional.
+
+Quick 10-step practical checklist to run during your single touch
+
+Photograph device and serial/IMEI.
+
+Check & record Android version & patch.
+
+Check/record Developer Options status.
+
+Capture device IP & connect to lab VLAN/Wi-Fi.
+
+Install lab_ca.crt and configure Wi-Fi proxy to lab host.
+
+Install lab_control_v1_signed.apk (and enable requested permission only).
+
+If allowed, enable USB Debugging; confirm host can see the device.
+
+On host: verify scrcpy, Burp intercept, and that lab_control calls home.
+
+Take screenshots of each important step and compute hashes for any stored images.
+
+Document and hand over evidence copy; leave device in cleanup-ready state or perform cleanup if required.
+
+What to expect in scoring / examiner checks
+
+They will look for: evidence of imaging first, documentation of settings before/after, reproducible demo (screen mirror, network trace), safe behavior (no exfil of private user data not authorized), and proper cleanup. Being transparent and professional often scores better than a “clever but messy” exploit.
