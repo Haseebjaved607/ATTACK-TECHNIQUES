@@ -1,155 +1,113 @@
-Top resources (what to learn from, and why)
+# Android Pentesting Learning Roadmap & Free Resources
 
-OWASP Mobile Application Security Testing Guide (MASTG) — canonical, comprehensive guide covering OS internals, static/dynamic techniques, and test cases. Learn this as your theoretical foundation. 
-mas.owasp.org
-+1
+> A focused README listing the best free resources, teachers, and an 8–12 week learning roadmap to go from zero → lab-ready in Android pentesting.
 
-MobSF (Mobile Security Framework) — the go-to free tool for automated static + dynamic APK analysis; great for practice and finding low-hanging bugs quickly. 
-GitHub
-+1
+---
 
-Frida docs — dynamic instrumentation toolkit you’ll use daily for hooking and runtime analysis; learn basic scripts and Frida-gadget workflows. 
-frida.re
-+1
+## 🔗 Top resources (what to learn from + why)
 
-PortSwigger / Burp (Web Security Academy + Mobile testing docs) — learn HTTP(S) interception, replay, and mobile proxy setup; essential for API testing. Burp’s mobile docs are practical and up-to-date. 
-PortSwigger
-+1
+* **OWASP Mobile Application Security Testing Guide (MASTG)** — Canonical, comprehensive guide covering OS internals, static/dynamic techniques, and test cases. Use as your theoretical foundation. (mas.owasp.org)
+* **MobSF (Mobile Security Framework)** — Free tool for automated static + dynamic APK analysis; great for practice and finding low-hanging bugs quickly. (GitHub)
+* **Frida docs** — Dynamic instrumentation toolkit for hooking and runtime analysis; learn Frida-gadget workflows. (frida.re)
+* **PortSwigger / Burp (Web Security Academy + Mobile docs)** — Learn interception, replay, and mobile proxy setup; essential for API testing. (PortSwigger)
+* **Hands-on labs: TryHackMe** — Mobile Analysis / Android rooms: guided, hands-on labs for acquisition, MobSF, and dynamic analysis.
 
-Hands-on labs: TryHackMe — Mobile Analysis / Android rooms — guided, hands-on rooms to practice acquisition, MobSF, and basic analysis in a safe environment. Many useful free rooms exist. 
-TryHackMe
-+1
+---
 
-Recommended YouTube teachers / channels (free, practical)
+## ▶ Recommended YouTube teachers / channels (free & practical)
 
-LiveOverflow — excellent explanation videos for reverse engineering and exploitation concepts; good for foundations and CTF-style Android reversing. 
-YouTube
+* **LiveOverflow** — Reverse engineering & exploitation concepts; CTF-style Android reversing demos.
+* **John Hammond** — Hands-on malware/reverse-engineering and Android walkthroughs.
+* **TryHackMe community walkthroughs** — Search for “Android Analysis” rooms and walkthroughs.
 
-John Hammond — lots of hands-on malware/reverse-engineering and Android walkthroughs; practical, step-by-step demos. 
-YouTube
-+1
+---
 
-(Bonus) TryHackMe YouTube walkthroughs — community walkthroughs for rooms like “Android Analysis” (search TryHackMe Android Analysis). 
-YouTube
-+1
+## 🗓 Short learning roadmap (8–12 weeks)
 
-Short learning roadmap (what to study, in this order — ~8–12 weeks plan)
+**Week 1 — Foundations**
 
-Week 1 — Foundations
+* Read OWASP MASTG overview chapters (architecture, permissions, Android components).
 
-Read OWASP MASTG overview chapters (architecture, permissions, Android components). (MASTG is your syllabus). 
-mas.owasp.org
+**Week 2 — Tool basics & emulator practice**
 
-Week 2 — Tool basics & emulator practice
+* Install Android Studio emulator + ADB + scrcpy. Practice connecting, pulling logs, and mirroring.
 
-Install Android Studio emulator + ADB and scrcpy.
+**Week 3 — Static analysis**
 
-Practice connecting emulator, pulling logs, and mirroring.
+* Learn MobSF + jadx + apktool: feed an APK into MobSF, inspect decompiled code in jadx, and review AndroidManifest.
 
-Week 3 — Static analysis
+**Week 4 — Network testing**
 
-Learn MobSF + jadx + apktool: feed an APK into MobSF, read decompiled code in jadx, inspect AndroidManifest.
+* Learn Burp basics + device proxy setup; install Burp CA on emulator/device and intercept app traffic.
 
-Follow a MobSF quickstart and run a sample APK. 
-GitHub
-+1
+**Weeks 5–6 — Dynamic instrumentation**
 
-Week 4 — Network testing
+* Learn Frida basics: run Frida on emulator, write simple hooks (log strings, bypass checks). Use Frida docs and tutorials.
 
-Learn Burp basics + device proxy setup, install Burp CA on emulator/device, intercept app traffic. Read PortSwigger mobile docs. 
-PortSwigger
+**Week 7 — Combined labs**
 
-Week 5–6 — Dynamic instrumentation
+* Do TryHackMe “Mobile Analysis” room(s): practice acquisition, MobSF findings, and dynamic testing.
 
-Learn Frida basics: run Frida on emulator, write simple hooks (log strings, bypass checks). Use Frida docs tutorials. 
-frida.re
+**Weeks 8–12 — Capstone & repeat**
 
-Week 7 — Combined labs
+* Build a small benign test APK and practice: static analysis → Frida instrumentation → proxy API calls → demonstrate persistence options (boot receiver). Test on emulator, then on disposable phone. Record and report.
 
-Do TryHackMe “Mobile Analysis” room(s): practice acquisition, MobSF, and dynamic testing. 
-TryHackMe
+---
 
-Week 8–12 — Capstone & repeat
+## 🔍 Exact free resources / quick-start links
 
-Build a small test APK (benign) and practice: static analysis → instrument with Frida → proxy API calls → demonstrate persistence options (boot receiver). Test all on emulator, then on a disposable phone.
+* **OWASP MASTG** — mas.owasp.org
+* **MobSF** — MobSF GitHub & docs
+* **Frida** — frida.re
+* **PortSwigger Web Security Academy** — PortSwigger
+* **TryHackMe Mobile/Android rooms** — TryHackMe
+* **YouTube: LiveOverflow & John Hammond** — search channels on YouTube
 
-Record everything and make a short lab-report.
+---
 
-Exact free resources / links to start now (quick list)
+## 📚 What to watch/read first (concrete sequence)
 
-OWASP MASTG (guide & demos). 
-mas.owasp.org
-+1
+1. OWASP MASTG — read the “Testing” overview and “Static analysis” sections.
+2. MobSF quickstart — run an APK and review report fields.
+3. PortSwigger mobile guide — set up Burp + device proxy and install CA.
+4. Frida “getting started” — write a simple hook that logs a function call.
+5. TryHackMe mobile room — complete one lab end-to-end.
 
-MobSF GitHub + docs. 
-GitHub
-+1
+---
 
-Frida official docs (how-to + examples). 
-frida.re
-+1
+## 🧪 Quick practice projects (get lab-ready)
 
-PortSwigger Web Security Academy + Mobile testing docs. 
-PortSwigger
-+1
+* **Project A (1–2 days):** Intercept & modify an API call of a sample app using Burp on an emulator. Document the impact.
+* **Project B (2–4 days):** Take an APK, run MobSF → jadx → find an exported activity or hardcoded URL → write a Frida script to dump a runtime string.
+* **Project C (1 week):** Build a tiny signed “lab-control” APK that sends a heartbeat to your local server (no sensitive data). Install on emulator and show persistence after reboot (simulate BOOT_RECEIVER).
 
-TryHackMe Mobile/Android rooms (search “Mobile Analysis”, “Android Analysis”). 
-TryHackMe
-+1
+---
 
-YouTube: LiveOverflow channel and John Hammond channel for practical demos. 
-YouTube
-+1
+## ▶ How to learn from YouTube effectively (tips)
 
-What to watch/read first (concrete)
+* Don’t binge — follow a playlist (e.g., LiveOverflow → John Hammond). Reproduce every step on an emulator immediately.
+* Pause and practice: build a lab notebook with commands, screenshots, and notes.
 
-OWASP MASTG: read the “Testing” overview and “Static analysis” sections. 
-mas.owasp.org
+---
 
-MobSF quickstart: run an APK and review report fields. 
-mobsf.github.io
+## ✅ Short tool-priority checklist (what to master first)
 
-PortSwigger mobile guide: set up Burp + device proxy and install CA. 
-PortSwigger
+* **ADB + scrcpy**
+* **Burp Suite proxy + CA installation**
+* **MobSF + jadx + apktool**
+* **Frida / Objection basics**
+* **Android emulator** & building a test APK
 
-Frida “getting started”: write a one-line hook that logs a function call. 
-frida.re
+---
 
-TryHackMe mobile room: complete at least one lab end-to-end. 
-TryHackMe
+## 🎯 Final notes
 
-Quick practice projects (do these to get lab-ready)
+This roadmap and resource list gives you a practical path from fundamentals to lab-capable skills. Follow the week-by-week plan, practice the mini-projects, and you’ll be ready to perform Android pentest tasks in supervised labs.
 
-Project A (1–2 days): Intercept and modify an API call of a sample app using Burp on an emulator. Document request/response and explain impact.
+If you want, I can now:
 
-Project B (2–4 days): Take an APK, run MobSF → jadx → find an exported activity or hardcoded URL → write a Frida script to dump a runtime string.
+* Convert this README into a printable PDF;
+* Create a 7-day micro-course with a daily checklist and links; or
+* Curate 3 YouTube playlists (LiveOverflow, John Hammond, practical MobSF/Frida demos) in order.
 
-Project C (1 week): Build a tiny signed “lab-control” APK that sends a heartbeat to your local server (no sensitive data). Install on emulator and show persistence after reboot (simulate boot receiver).
-
-How to learn from YouTube effectively (tips)
-
-Don’t binge — follow a playlist: e.g., start with LiveOverflow’s reverse-engineering videos, then John Hammond’s Android walkthroughs. Practice the steps shown on your emulator immediately. 
-YouTube
-+1
-
-Pause the video and reproduce each step. Build a “lab notebook” with commands/steps and screenshots.
-
-Short tool-priority checklist (what to master first)
-
-ADB + scrcpy
-
-Burp Suite proxy + CA installation
-
-MobSF + jadx + apktool
-
-Frida / Objection basics
-
-Android emulator & building a test APK
-
-(Most load-bearing claims above are backed by OWASP / MobSF / Frida / PortSwigger docs and TryHackMe labs.) 
-TryHackMe
-+4
-mas.owasp.org
-+4
-GitHub
-+4
+Which one should I make next?
